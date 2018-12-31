@@ -1,19 +1,48 @@
 #!/usr/bin/env python
-
-from httplib import HTTPConnection, HTTPSConnection
+import sys
 import ssl
 from numbers import Number
+if sys.version_info.major == 3:
+    # for python3
+    from http.client import HTTPConnection, HTTPSConnection
+    from msgpack import packb
+    from msgpack import unpackb as unpackb2
+    def bytes2string(b):
+        """
+        convert bytes to string in string,dict and list
+        :param b:
+        :return:
+        """
+        if isinstance(b, bytes):
+            return b.decode()
+        elif isinstance(b, list):
+            return [bytes2string(v) for v in b]
+            # ret = []
+            # for v in b:
+            #     ret.append(bytes2string(v))
+            # return ret
+        elif isinstance(b, dict):
+            ret = {}
+            for k, v in b.items():
+                ret[bytes2string(k)] = bytes2string(v)
+            return ret
+        else:
+            return b 
+    def unpackb(packed,**kwargs):
+        return bytes2string(unpackb2(packed,**kwargs))
+else:
+    # for python2
+    from httplib import HTTPConnection, HTTPSConnection
+    from msgpack import packb, unpackb
 
-from msgpack import packb, unpackb
-
-__author__ = 'Nadeem Douba'
-__copyright__ = 'Copyright 2012, PyMetasploit Project'
+__author__ = 'Nadeem Douba,RainyBow'
+__copyright__ = 'Copyright 2019, PyMetasploit Project'
 __credits__ = []
 
 __license__ = 'GPL'
-__version__ = '0.4'
+__version__ = '0.5'
 __maintainer__ = 'Nadeem Douba'
-__email__ = 'ndouba@gmail.com'
+__email__ = 'ndouba@gmail.com,rainybowcode@gmail.com'
 __status__ = 'Development'
 
 __all__ = [
@@ -1328,8 +1357,11 @@ class MsfModule(object):
         self.modulename = mname
         self.rpc = rpc
         self._info = rpc.call(MsfRpcMethod.ModuleInfo, mtype, mname)
+        property_attributes = ["advanced", "evasion", "options", "required",
+                               "runoptions"]
         for k in self._info:
-            setattr(self, k, self._info.get(k))
+            if k not in property_attributes:
+                setattr(self, k, self._info.get(k))
         self._moptions = rpc.call(MsfRpcMethod.ModuleOptions, mtype, mname)
         self._roptions = []
         self._aoptions = []
