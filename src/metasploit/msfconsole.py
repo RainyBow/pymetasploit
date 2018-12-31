@@ -3,14 +3,14 @@
 from threading import Timer, Lock
 from msfrpc import ShellSession
 
-__author__ = 'Nadeem Douba'
-__copyright__ = 'Copyright 2012, PyMetasploit Project'
+__author__ = 'Nadeem Douba,RainyBow'
+__copyright__ = 'Copyright 2019, PyMetasploit Project'
 __credits__ = []
 
 __license__ = 'GPL'
-__version__ = '0.3'
+__version__ = '0.4'
 __maintainer__ = 'Nadeem Douba'
-__email__ = 'ndouba@cygnos.com'
+__email__ = 'ndouba@cygnos.com,rainybowcode@gmail.com'
 __status__ = 'Development'
 
 __all__ = [
@@ -66,13 +66,13 @@ class MsfRpcConsole(object):
                 if self.callback is not None:
                     self.callback(d)
                 else:
-                    print d['data']
+                    print(d['data'])
         else:
             if d:
                 if self.callback is not None:
                     self.callback(dict(data=d, prompt=self.prompt))
                 else:
-                    print d
+                    print(d)
         Timer(0.5, self._poller).start()
 
     def execute(self, command):
