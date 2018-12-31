@@ -2,11 +2,11 @@
 import sys
 import ssl
 from numbers import Number
+from msgpack import packb as packb2
+from msgpack import unpackb as unpackb2
 if sys.version_info.major == 3:
     # for python3
     from http.client import HTTPConnection, HTTPSConnection
-    from msgpack import packb
-    from msgpack import unpackb as unpackb2
     def bytes2string(b):
         """
         convert bytes to string in string,dict and list
@@ -28,12 +28,15 @@ if sys.version_info.major == 3:
             return ret
         else:
             return b 
-    def unpackb(packed,**kwargs):
-        return bytes2string(unpackb2(packed,**kwargs))
+    def unpackb(packed):
+        return bytes2string(unpackb2(packed, raw=True))
+    def packb(want_to_pack):
+        return packb2(want_to_pack,use_bin_type=True)
 else:
     # for python2
     from httplib import HTTPConnection, HTTPSConnection
-    from msgpack import packb, unpackb
+    packb = packb2
+    unpackb = unpackb2
 
 __author__ = 'Nadeem Douba,RainyBow'
 __copyright__ = 'Copyright 2019, PyMetasploit Project'
@@ -1003,7 +1006,10 @@ class Workspace(object):
         self.rpc.call(MsfRpcMethod.DbImportData, {'workspace' : self.name, 'data' : data})
 
     def importfile(self, fname):
-        r = file(fname, mode='rb')
+        if sys.version_info.major == 2:
+            r = file(fname, mode='rb')
+        else:
+            r = open(fname, mode='r')
         self.rpc.call(MsfRpcMethod.DbImportData, {'workspace' : self.name, 'data' : r.read()})
         r.close()
 
@@ -1382,7 +1388,7 @@ class MsfModule(object):
         """
         All the module options.
         """
-        return self._moptions.keys()
+        return list(self._moptions.keys())
 
     @property
     def required(self):
@@ -1411,7 +1417,7 @@ class MsfModule(object):
         The running (currently set) options for a module. This will raise an error
         if some of the required options are missing.
         """
-        outstanding = set(self.required).difference(self._runopts.keys())
+        outstanding = set(self.required).difference(list(self._runopts.keys()))
         if outstanding:
             raise TypeError('Module missing required parameter: %s' % ', '.join(outstanding))
         return self._runopts
@@ -1493,14 +1499,14 @@ class MsfModule(object):
                             'Invalid payload (%s) for given target (%d).' % (payload.modulename, self.target)
                         )
                     runopts['PAYLOAD'] = payload.modulename
-                    for k, v in payload.runoptions.iteritems():
-                        if v is None or (isinstance(v, basestring) and not v):
+                    for k, v in payload.runoptions.items():
+                        if v is None or (isinstance(v, str) and not v):
                             continue
                         if k not in runopts or runopts[k] is None or \
-                           (isinstance(runopts[k], basestring) and not runopts[k]):
+                           (isinstance(runopts[k], str) and not runopts[k]):
                             runopts[k] = v
 #                    runopts.update(payload.runoptions)
-                elif isinstance(payload, basestring):
+                elif isinstance(payload, str):
                     if payload not in self.payloads:
                         raise ValueError('Invalid payload (%s) for given target (%d).' % (payload, self.target))
                     runopts['PAYLOAD'] = payload
@@ -1538,7 +1544,7 @@ class ExploitModule(MsfModule):
     @target.setter
     def target(self, target):
         if target not in self.targets:
-            raise ValueError('Target must be one of %s' % repr(self.targets.keys()))
+            raise ValueError('Target must be one of %s' % repr(list(self.targets.keys())))
         self._target = target
 
     def targetpayloads(self, t=0):
